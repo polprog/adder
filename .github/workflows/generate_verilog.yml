@@ -1,3 +1,5 @@
+name: Generate Verilog code
+
 on:
   workflow_run:
     workflows: ["VHDL testbench"]
@@ -7,7 +9,6 @@ on:
 jobs:
   notify:
     runs-on: ubuntu-latest
-
     steps:
       
       
@@ -15,37 +16,45 @@ jobs:
         shell: bash
         run: |
           sudo apt-get update
-          sudo apt-get install gperf build-essential bison flex libreadline-dev gawk tcl-dev libffi-dev git graphviz xdot pkg-config python python3 libboost-system-dev libboost-python-dev libboost-filesystem-dev zlib1g-dev
-      - name: Get iverilog
-        shell: bash
-        run: |
-          git clone https://github.com/steveicarus/iverilog.git
+          sudo apt-get install gperf build-essential bison flex libreadline-dev gawk tcl-dev libffi-dev git graphviz xdot pkg-config python2 python3 libboost-system-dev libboost-python-dev libboost-filesystem-dev zlib1g-dev iverilog
 
-      - name: Cache iverilog
-        id: cache-iverilog
-        uses: actions/cache@v3
+
+      - name: Restore cached Yosys build
+        id: cache-yosys-restore
+        uses: actions/cache/restore@v3
         with:
-          path: .local/
-          key: ${{ matrix.os.id }}-${{ hashFiles('iverilog/.git/refs/heads/master') }}
+          path: ${{ github.workspace }}/yosys/
+          key: yosys
 
-      - name: Build iverilog
-        if: steps.cache-iverilog.outputs.cache-hit != 'true'
-        shell: bash
+      - name: Fetch yosys
+        if: steps.cache-yosys-restore.outputs.cache-hit != 'true'
         run: |
-          mkdir -p $GITHUB_WORKSPACE/.local/
-          cd iverilog
-          autoconf
-          CC=gcc CXX=g++ ./configure --prefix=$GITHUB_WORKSPACE/.local
-          make -j${{ env.procs }}
-          make install
-
+          git clone https://github.com/YosysHQ/yosys.git
+      
       - name: Build yosys
+        if: steps.cache-yosys-restore.outputs.cache-hit != 'true'
         shell: bash
+        timeout-minutes: 20
         run: |
+          cd yosys
+          echo ${{ github.workspace }}
+          pwd;#exit
           CC=gcc
           make config-$CC
-          make -j${{ env.procs }} CC=$CC CXX=$CC LD=$CC
-      
+          free -h
+          #make -j${{ env.procs }} CC=$CC CXX=$CC LD=$CC  # OOM killed?
+          make -j2 CC=$CC CXX=$CC LD=$CC
+
+
+      - name: Save cached Yosys build
+        id: cache-yosys-save
+        uses: actions/cache/save@v3
+        with:
+          path: ${{ github.workspace }}/yosys/
+          key: ${{ steps.cache-yosys-restore.outputs.cache-primary-key }}
+
+
+          
       - uses: actions/checkout@v3
       - name: Generate Verilog code
         run: |

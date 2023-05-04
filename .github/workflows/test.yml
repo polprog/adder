@@ -28,9 +28,21 @@ jobs:
       # Runs a single command using the runners shell
       - name: Run a one-line script
         run: echo Hello, world!
-
-      # Runs a set of commands using the runners shell
-      - name: Run a multi-line script
+      # Install GHDL deps
+      - name: Install dependencies
         run: |
-          echo Add other actions to build,
-          echo test, and deploy your project.
+          export DEBIAN_FRONTEND=noninteractive
+          sudo apt update && sudo apt install -y ghdl
+      # Run simulation as per README.md
+      - name: Run VHDL testbenches
+        run: |
+          export GHDL_FLAGS=
+          # export GHDL_FLAGS="--warn-error"
+          for unit in adder full_adder; do
+           echo Starting testbench of $unit...
+           ghdl -a ./src/vhdl/${unit}.vhdl
+           ghdl -a ./src/vhdl/${unit}_tb.vhdl
+           ghdl -e ${unit}_tb
+           [ $? == 0 ] && echo "(testbench for $unit exited with no errors)"
+           ghdl -r ${unit}_tb --wave=./waves/${unit}_tb.ghw && echo "Waveforms exported to ./waves/${unit}_tb.ghw"
+          done

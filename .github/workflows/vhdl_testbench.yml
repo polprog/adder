@@ -40,9 +40,9 @@ jobs:
           # export GHDL_FLAGS="--warn-error"
           for unit in adder full_adder; do
            echo Starting testbench of $unit...
-           ghdl -a ./src/vhdl/${unit}.vhdl
-           ghdl -a ./src/vhdl/${unit}_tb.vhdl
-           ghdl -e ${unit}_tb
+           ghdl $GHDL_FLAGS -a ./src/vhdl/${unit}.vhdl
+           ghdl $GHDL_FLAGS -a ./src/vhdl/${unit}_tb.vhdl
+           ghdl $GHDL_FLAGS -e ${unit}_tb
            [ $? == 0 ] && echo "(testbench for $unit exited with no errors)"
-           ghdl -r ${unit}_tb --wave=./waves/${unit}_tb.ghw && echo "Waveforms exported to ./waves/${unit}_tb.ghw"
+           ghdl $GHDL_FLAGS -r ${unit}_tb --wave=./waves/${unit}_tb.ghw && echo "Waveforms exported to ./waves/${unit}_tb.ghw"
           done
